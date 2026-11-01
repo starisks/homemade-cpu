@@ -1,0 +1,15 @@
+{
+    "cSpell.words": [
+        "addi",
+        "loadi",
+        "andn",
+        "xori",
+        "xnor",
+        "remi",
+        "diops"
+    ],
+    "C_Cpp.default.compilerPath": "",
+    "Lua.diagnostics.disable" : [
+        "lowercase-global"
+    ]
+}
