@@ -17,7 +17,7 @@ If i want to experience the C family again. i would pick the C# port after doing
 ## Scratch Port
 I can say for the first time. I have made something comparable to this scale in Scratch
 ## Haxe
-In the future, about 5 of the other languages to port will be from Haxe port
+About 5 of the other languages to port will be from Haxe port
 
 The languages that i have ported from Haxe is: C#, PHP, Neko, Cppia, and HashLink
 ## Web Assembly Port
