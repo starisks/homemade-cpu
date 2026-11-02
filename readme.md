@@ -22,5 +22,7 @@ About 5 of the other languages to port will be from Haxe port
 The languages that i have ported from Haxe is: C#, PHP, Neko, Cppia, and HashLink
 ## Web Assembly Port
 Yes, it actually exists. Although the instruction is hard-coded since i was too lazy to implement it in C++. It works.
+## Ruby port
+In development.
 ### Note
-I might do other languages, such as Rust, or Ruby
+I might do other languages, such as Rust

@@ -11,5 +11,12 @@
     "C_Cpp.default.compilerPath": "",
     "Lua.diagnostics.disable" : [
         "lowercase-global"
-    ]
+    ],
+    "[ruby]": {
+        "editor.defaultFormatter": "Shopify.ruby-lsp",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    }
 }

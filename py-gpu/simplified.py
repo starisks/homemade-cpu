@@ -433,6 +433,8 @@ class GPU:
                 self.waiting.add(core.id)
         if len(self.waiting) == len(self.cores):
             self.waiting.clear()
+            for core in self.cores:
+                core.waiting = False
     def run(self, max_steps = 1000000):
         for _ in range(max_steps):
             self.step()

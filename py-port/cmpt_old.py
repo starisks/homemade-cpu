@@ -15,6 +15,6 @@ class C:
         self.N();X,z=F(self.L);Y=H(X,z)
         if Y:self.Y=True
         else:self.pc+=1
-    def run(self):
+    def Q(self):
         while not self.Y:self.M()
-K=C();y["a"]=5;y["b"]=3;y["c"]=2;K.run();print(y["a"])
+K=C();y["a"]=5;y["b"]=3;y["c"]=2;K.Q();print(y["a"])

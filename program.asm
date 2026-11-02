@@ -1,3 +1,2 @@
-coreid a
-loadi b,5
-add a, b
+loadi a, 15
+subi a, 5
