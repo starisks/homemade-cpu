@@ -20,7 +20,7 @@ reg_codes = {
 }
 memory = {}
 for i = 1, 256 do
-    memory[i] = 0
+memory[i] = 0
 end
 instruction_memory = {}
 isa = {

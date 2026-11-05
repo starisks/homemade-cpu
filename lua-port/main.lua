@@ -435,7 +435,6 @@ end
 -- max steps
 max_steps = 1000000
 
-
 -- cpu run
 function CPU:run()
     for _ = 1, max_steps do
