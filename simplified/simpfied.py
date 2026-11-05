@@ -1,53 +1,10 @@
 M={k:0 for k in "abcdefgh"}
 C_K=[]
-f={
-    "add" : 0x00,
-    "sub" : 0x01,
-    "load" : 0x02,
-    "store" : 0x03,
-    "W" : 0x04,
-    "and" : 0x05,
-    "or" : 0x06,
-    "xor" : 0x07,
-    "not" : 0x08,
-    "<<" : 0x09,
-    ">>" : 0x10,
-    "mov" : 0x11,
-    "clr" : 0x12,
-    "inc" : 0x13,
-    "dec" : 0x14,
-    "nop" : 0x15,
-    "loadi" : 0x16,
-    "addi" : 0x17,
-    "subi" : 0x18,
-    "jmp" : 0x19,
-    "loop" : 0x20,
-    "rol" : 0x21,
-    "ror" : 0x22,
-    "call" : 0x23,
-    "ret" : 0x24,
-    "branch" : 0x25,
-    "uml" : 0x26,
-    "udv" : 0x27,
-    "sml" : 0x28,
-    "sdv" : 0x29,
-    "neg" : 0x30,
-    "andi" : 0x31,
-    "andn" : 0x32,
-    "ori" : 0x33,
-    "xori" : 0x34,
-    "orn" : 0x35,
-    "xnor" : 0x36,
-    "sh1add" : 0x37,
-    "sh2add" : 0x38,
-    "sh3add" : 0x39,
-    "rem" : 0x40,
-    "remi" : 0x41
-}
+f={"add":0x00,"sub":0x01,"load":0x02,"store":0x03,"W":0x04,"and":0x05,"or":0x06,"xor":0x07,"not":0x08,"<<":0x09,">>":0x10,"mov":0x11,"clr":0x12,"inc":0x13,"dec":0x14,"nop":0x15,"loadi":0x16,"addi":0x17,"subi":0x18,"jmp":0x19,"loop":0x20,"rol":0x21,"ror":0x22,"call":0x23,"ret":0x24,"branch":0x25,"uml":0x26,"udv":0x27,"sml":0x28,"sdv":0x29,"neg":0x30,"andi":0x31,"andn":0x32,"ori":0x33,"xori":0x34,"orn":0x35,"xnor":0x36,"sh1add":0x37,"sh2add":0x38,"sh3add":0x39,"rem":0x40,"remi":0x41}
 diops={"add","sub","and","or","xor","<<",">>","rol","ror","uml","udv","sml","sdv"}
 zde=ZeroDivisionError("zero division error")
 ve=ValueError
-def F(x):
+def F(x): 
     if x & 0x80: return x - 0x100
     return x
 def ALU(x, y, J):
@@ -177,22 +134,19 @@ class c:
             I.O=M[X]==0
         elif J=="W":return "W"
         return False
-    def a(I):I.R = H_C(I.Q)
+    def a(I):I.R=H_C(I.Q)
     def step(I):
         if I.P:return
-        if not 0 <= I.Q < len(C_K): 
-            I.P = True
-            return
+        if not 0 <= I.Q < len(C_K):I.P=True;return
         I.a()
         J,G=D(I.R)
         result=I.b(J,G)
-        if result == "W":I.P=True
-        elif isinstance(result, tuple):
-            U,V= result
-            if not 0 <= V < len(C_K):
-                raise RuntimeError(f"{U} V is invalid {V}")
+        if result=="W":I.P=True
+        elif isinstance(result,tuple):
+            U,V=result
+            if not 0 <= V < len(C_K):raise RuntimeError(f"{U} V is invalid {V}")
             I.Q=V
-        else: I.Q+=1
+        else:I.Q+=1
     def run(I,T=1000000):
         for _ in range(T):
             I.step()
