@@ -1,4 +1,3 @@
-# registers
 reg = {
     "a":0,
     "b":0,
@@ -9,7 +8,6 @@ reg = {
     "g":0,
     "h":0
 } 
-
 
 reg_codes = {
     "a":0,

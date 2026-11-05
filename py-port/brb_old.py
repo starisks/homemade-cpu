@@ -120,22 +120,19 @@ class CPU:
         self.pc = 0
         self.ir = None
         self.halted = False
-    def fetch(self):
-        self.ir = read_instruction(self.pc)
+    def fetch(self):self.ir = read_instruction(self.pc)
     def step(self):
         if self.halted:
             return
         self.fetch()
         operation, operands = decode(self.ir)
         halted = execute(operation, operands)
-        if halted:
-            self.halted = True
-        else:
-            self.pc += 1
+        if halted: self.halted = True
+        else: self.pc += 1
     def run(self):
         while not self.halted:
             self.step()
-cpu = CPU()
+cpu=CPU()
 reg["a"] = 5
 reg["b"] = 3
 reg["c"] = 2

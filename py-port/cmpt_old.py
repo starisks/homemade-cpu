@@ -2,7 +2,7 @@ y={k:0 for k in "abcdefgh"};S={k:i for i,k in enumerate(y)};Z=[];W={"B":0x00,"C"
 def U(x,y,X):return((x+y)if X=="B"else(x-y))&255
 def J(L,*z):return[W[L],[S[x] for x in z]]
 Z.append(J("B","a","b"));Z.append(J("C","a","c"));Z.append(J("D"))
-def F(L):op,z=L;X={v:k for k,v in W.items()}[op];P=list(S.keys());O=[P[x] for x in z];return X,O
+def F(L):H,z=L;X={v:k for k,v in W.items()}[H];P=list(S.keys());O=[P[x] for x in z];return X,O
 def G(I):return Z[I]
 def H(X,z):
     if X in ("B","C"):d,s=z;y[d]=U(y[d],y[s],X)
