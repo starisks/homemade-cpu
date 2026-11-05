@@ -1,2 +1,3 @@
-loadi a, 15
-subi a, 5
+loadi a, 10
+loadi b, 15
+add a, b

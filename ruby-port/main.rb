@@ -1,7 +1,7 @@
 puts "Hello from Ruby"
 
 # registers
-reg = {
+$reg = {
     a:0,
     b:0,
     c:0,
@@ -12,7 +12,7 @@ reg = {
     h:0
 } 
 
-reg_codes = {
+$reg_codes = {
     a: 0,
     b: 1,
     c: 2,
@@ -24,20 +24,19 @@ reg_codes = {
 }
 
 # memory
-memory = [0] * 256
-instruction_memory = []
+$instruction_memory = []
 
 # instruction set
-isa = {
+$isa = {
     add: 0x00,
     sub: 0x01,
     load: 0x02,
     store: 0x03,
     halt: 0x04,
-    and: 0x05,
-    or: 0x06,
+    :"and"=> 0x05,
+    :"or"=> 0x06,
     xor: 0x07,
-    not: 0x08,
+    :"not"=> 0x08,
     :"<<"=> 0x09,
     :">>"=> 0x10,
     mov: 0x11,
@@ -73,7 +72,7 @@ isa = {
     remi: 0x41
 }
 
-diops = [
+$diops = [
   "add",
   "sub",
   "and",
@@ -91,8 +90,8 @@ diops = [
 
 # signed integer
 def signed8(x)
-  if (x & 0x80)
-    return (x - 100)
+  if (x & 0x80) != 0
+    return x - 0x100
   end
   return x
 end
@@ -103,9 +102,10 @@ def alu(x, y, operation)
     return (x + y) & 0xFF
   elsif (operation == "sub")
     return (x - y) & 0xFF
-  # todo : uml, udv, sml, sdv, instruction not found
   elsif (operation == "and")
-    return (x && y)
+    return (x & y)
+  elsif (operation == "xor")
+    return (x ^ y)
   elsif (operation == "or")
     return (x | y)
   elsif (operation == "not")
@@ -118,7 +118,7 @@ def alu(x, y, operation)
     y %= 8
     return ((x << y) | (x >> (8 - y))) & 0xFF
   elsif (operation == "ror")
-    y %= 9
+    y %= 8
     return ((x >> y) | (x << (8 - y))) & 0xFF
   elsif (operation == "uml")
     return (x * y) & 0xFF
@@ -126,6 +126,320 @@ def alu(x, y, operation)
     if y == 0
       raise ZeroDivisionError, "Zero division error" 
     end
+    return (x / y) & 0xFF
+  elsif (operation == "sml")
+    x = signed8(x)
+    y = signed8(y)
+    return (x * y) & 0xFF
+  elsif (operation == "sdv")
+    x = signed8(x)
+    y = signed8(y)
+    if (y == 0)
+      raise ZeroDivisionError, "Zero division error"
+    end
     return (x / y)
+  else
+    return "invalid instruction"
   end
+end
+
+# encode
+def encode(instruction, *operands)
+  puts "DEBUG instruction: #{instruction.inspect}"
+  puts "DEBUG class: #{instruction.class}"
+  puts "DEBUG ISA keys: #{$isa.keys.inspect}"
+  if !$isa.include?(instruction)
+    raise ArgumentError, "instruction not in $isa"
+  end
+  opcode = $isa[instruction]
+  encoded_operands = []
+  for operand in operands
+    if (operand.is_a?(Symbol)) && ($reg_codes.key?(operand))
+      encoded_operands << ["reg", $reg_codes[operand]]
+    elsif (operand.is_a?(Integer))
+      if !(0 <= operand && operand <= 0xFF)
+        raise ArgumentError, "invalid address"
+      end
+      encoded_operands << ["imm", operand]
+    else
+      puts "DEBUG operand: #{operand.inspect}"
+      puts "DEBUG class: #{operand.class}"
+      raise ArgumentError, "invalid operand"
+    end
+  end
+  return [opcode, encoded_operands]
+end
+
+# hex comprehension
+def parse_operand(x)
+  x = x.downcase
+  body = x.sub(/\A[+-]+/, '')
+
+  begin
+    if body.start_with?("0x", "0b", "0o")
+      value = Integer(x, 0)
+    else
+      value = Integer(x, 10)
+    end
+  rescue ArgumentError
+    return x.to_sym if $reg_codes.key?(x.to_sym)
+    return x
+  end
+  if !(-128 <= value && value <= 255)
+    raise ArgumentError, "imm out of range"
+  end
+  return value & 0xFF
+end
+
+# code
+File.foreach("../program.asm") do |line|
+  line = line.split("#")[0].split(";")[0]
+  parts = line.tr(",", ' ').split
+  
+  unless parts.empty?
+    parts = parts.map {|x| parse_operand(x)}
+    parts[0] = parts[0].to_sym
+
+    $instruction_memory << encode(*parts)
+  end
+end
+
+# decode
+def decode(instruction)
+  opcode, operands = instruction
+  operation = $isa.key(opcode)
+
+  if operation == nil
+    raise ArgumentError, "invalid opcode"
+  end
+
+  decoded_operands = []
+
+  operands.each do |operand_type, value|
+    if (operand_type == "reg")
+      decoded_operands << $reg_codes.key(value)
+    elsif (operand_type == "imm")
+      decoded_operands << value
+    else
+      raise ArgumentError, "invalid operand type"
+    end
+  end
+
+  return operation.to_s, decoded_operands
+end
+
+# read instruction
+def read_instruction(address)
+  return $instruction_memory[address]
+end
+
+# cpu class
+class CPU
+  def initialize
+    @pc = 0
+    @ir = nil
+    @halted = false
+    @zero_flag = false
+    @stack = []
+  end
+
+  def execute(operation, *operands)
+    if (operation == 'not')
+      dest = operands[0]
+
+      $reg[dest] = alu(
+        $reg[dest],
+        0,
+        'not'
+      )
+
+      @zero_flag = ($reg[dest] == 0)
+
+    elsif (operation == 'loadi')
+      dest, value = operands
+
+      $reg[dest] = value & 0xFF
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'clr')
+      dest = operands[0]
+
+      $reg[dest] = 0
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'inc')
+      dest = operands[0]
+
+      $reg[dest] = ($reg[dest] + 1) & 0xff
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'dec')
+      dest = operands[0]
+
+      $reg[dest] = ($reg[dest] - 1) & 0xff
+    elsif (operation == 'nop')
+    elsif (operation == 'jmp')
+      address = operands[0]
+      return ["jump", address]
+    elsif (operation == 'loop')
+      dest, address = operands
+
+      $reg[dest] = ($reg[dest] - 1) & 0xff
+
+      @zero_flag = ($reg[dest] == 0)
+
+      if $reg[dest] != 0
+        return ["loop", address]
+      end
+    elsif (operation === 'call')
+      address = operands[0]
+
+      @stack << (@pc + 1)
+      return ["jump", address]
+    elsif (operation == 'ret')
+      if @stack.empty?
+        raise RuntimeError, "stack is empty"
+      end
+
+      return_address = @stack.pop
+
+      return ["jump", return_address]
+    elsif (operation == 'branch')
+      address = operands[0]
+
+      if @zero_flag
+        return ['jump', address]
+      end
+    elsif (operation == 'neg')
+      dest = operands[0]
+
+      $reg[dest] = (-$reg[dest]) & 0xFF
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'andn')
+      dest, src, src2 = operands
+
+      $reg[dest] = alu(
+        $reg[src],
+        (~$reg[src2]) & 0xFF,
+        "and"
+      )
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'orn')
+      dest, src, src2 = operands
+
+      $reg[dest] = alu(
+        $reg[src],
+        (~$reg[src2]) & 0xff,
+        "or"
+      )
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'xnor')
+      dest, src, src2 = operands
+
+      $reg[dest] = alu(
+        $reg[src],
+        (~$reg[src2]) & 0xff,
+        'xor'
+      )
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == 'sh1add')
+      dest, src, src2 = operands
+
+      $reg[dest] = (
+        ($reg[src] << 1) + $reg[src2]
+      ) & 0xFF
+
+      @zero_flag = ($reg[dest] == 0)
+
+    elsif (operation == 'sh2add')
+      dest, src, src2 = operands
+
+      $reg[dest] = (
+        ($reg[src] << 2) + $reg[src2]
+      ) & 0xFF
+
+      @zero_flag = ($reg[dest] == 0)
+
+    elsif (operation == 'sh3add')
+      dest, src, src2 = operands
+
+      $reg[dest] = (
+        ($reg[src] << 3) + $reg[src2]
+      ) & 0xFF
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif $diops.include?(operation)
+      dest, src = operands
+
+      $reg[dest] = alu(
+        $reg[dest],
+        $reg[src],
+        operation
+      )
+
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == "halt")
+      return "halt"
+    end
+    return false
+  end
+
+  def fetch
+    @ir = read_instruction(@pc)
+  end
+
+  def step
+    if @halted
+      return
+    end
+
+    if !(0 <= @pc && @pc < $instruction_memory.size)
+      @halted = true
+      return
+    end
+
+    fetch()
+    operation, operands = decode(@ir)
+
+    result = execute(operation, *operands)
+
+    if (result == 'halt')
+      @halted = true
+    elsif (result.is_a?(Array))
+      kind, target = result
+
+      if !(0 <= target && target < $instruction_memory.size)
+        raise RuntimeError, "target is invalid"
+      end
+
+      @pc = target
+    else
+      @pc += 1
+    end
+  end
+
+  def run(max_steps = 1000000)
+    max_steps.times do
+      step()
+      if @halted
+        return
+      end
+    end
+    raise RuntimeError, "maximum step count exceeded"
+  end
+end
+
+# cpu instance
+cpu = CPU.new
+
+cpu.run()
+
+puts "register data:"
+
+$reg.each do |name, value|
+  puts "#{name}: #{value}"
 end
