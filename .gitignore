@@ -2,3 +2,4 @@ Gemfile.lock
 .ruby-version
 __pycache__/
 .vscode/
+.ruby-lsp/

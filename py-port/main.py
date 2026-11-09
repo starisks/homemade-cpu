@@ -238,6 +238,7 @@ class CPU:
         self.ir = None
         self.halted = False
         self.zero_flag = False
+        self.negative_flag = False
         self.stack = []
 
     def execute(self, operation, operands):
@@ -254,6 +255,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "sub":
             dest, src = operands
@@ -265,6 +267,7 @@ class CPU:
             )
             
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "and":
             dest, src = operands
@@ -276,6 +279,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "not":
             dest, = operands
@@ -287,6 +291,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "or":
             dest, src = operands
@@ -298,6 +303,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "xor":
             dest, src = operands
@@ -309,6 +315,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "<<":
             dest, src = operands
@@ -320,6 +327,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == ">>":
             dest, src = operands
@@ -331,6 +339,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "mov":
             dest, src = operands
@@ -338,6 +347,7 @@ class CPU:
             reg[dest] = reg[src]   
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "clr":
             dest, = operands
@@ -345,6 +355,7 @@ class CPU:
             reg[dest] = 0
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "inc":
             dest, = operands
@@ -352,6 +363,7 @@ class CPU:
             reg[dest] = (reg[dest] + 1) & 0xFF
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "dec":
             dest, = operands
@@ -359,6 +371,7 @@ class CPU:
             reg[dest] = (reg[dest] - 1) & 0xFF
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "load":
             dest, address = operands
@@ -366,6 +379,7 @@ class CPU:
             reg[dest] = memory[address]
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "store":
             src, address = operands
@@ -381,6 +395,7 @@ class CPU:
             reg[dest] = value
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "addi":
             dest, value = operands
@@ -392,6 +407,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "subi":
             dest, value = operands
@@ -403,6 +419,7 @@ class CPU:
             )    
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "jmp":
             address, = operands
@@ -413,6 +430,9 @@ class CPU:
 
             reg[dest] = (reg[dest] - 1) & 0xFF
 
+            self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
+            
             if reg[dest] != 0:
                 return ("loop", address)
 
@@ -426,6 +446,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "ror":
             dest, src = operands
@@ -437,6 +458,7 @@ class CPU:
             )       
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "call":
             address, = operands
@@ -468,6 +490,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "udv":
             dest, src = operands
@@ -479,6 +502,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "sml":
             dest, src = operands
@@ -490,6 +514,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "sdv":
             dest, src = operands
@@ -501,6 +526,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "neg":
             dest, = operands
@@ -508,6 +534,7 @@ class CPU:
             reg[dest] = (-reg[dest]) & 0xFF
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "andi":
             dest, value = operands
@@ -519,6 +546,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "andn":
             dest, src, src2 = operands
@@ -530,6 +558,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "ori":
             dest, value = operands
@@ -541,6 +570,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "xori":
             dest, value = operands
@@ -552,6 +582,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "orn":
             dest, src, src2 = operands
@@ -563,6 +594,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "xnor":
             dest, src, src2 = operands
@@ -574,6 +606,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "sh1add":
             dest, src, src2 = operands
@@ -583,6 +616,7 @@ class CPU:
             ) & 0xFF
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "sh2add":
             dest, src ,src2 = operands
@@ -592,6 +626,7 @@ class CPU:
             ) & 0xFF
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "sh3add":
             dest, src, src2 = operands
@@ -601,6 +636,7 @@ class CPU:
             ) & 0xFF
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "remi":
             dest, value = operands
@@ -611,11 +647,13 @@ class CPU:
             reg[dest] = reg[dest] % value
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "tst":
             dest, = operands
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "max":
             dest, src = operands
@@ -627,6 +665,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "min":
             dest, src = operands
@@ -638,17 +677,15 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "cmp":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
-                "cmp"
-            )
+            result = (reg[dest] - reg[src]) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
+            self.zero_flag = (result == 0)
+            self.negative_flag = bool(result & 0x80)
 
         elif operation == "rem":
             dest, src = operands
@@ -660,6 +697,7 @@ class CPU:
             )
 
             self.zero_flag = (reg[dest] == 0)
+            self.negative_flag = bool(reg[dest] & 0x80)
 
         elif operation == "halt":
             return "halt"
