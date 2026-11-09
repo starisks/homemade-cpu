@@ -57,7 +57,6 @@ isa = {
     "ror" : 0x22,
     "call" : 0x23,
     "ret" : 0x24,
-    "branch" : 0x25,
     "uml" : 0x26,
     "udv" : 0x27,
     "sml" : 0x28,
@@ -77,7 +76,10 @@ isa = {
     "tst" : 0x42,
     "cmp" : 0x43,
     "max" : 0x44,
-    "min" : 0x45
+    "min" : 0x45,
+    "bnf" : 0x46,
+    "bzf" : 0x47,
+    "bpf" : 0x48
 }
 
 # signed integer
@@ -188,7 +190,6 @@ def parse_operand(x):
     
     return value & 0xFF
 
-    
 # code
 with open("../program.asm", "r") as file:
     for line in file:
@@ -239,7 +240,16 @@ class CPU:
         self.halted = False
         self.zero_flag = False
         self.negative_flag = False
+        self.parity_flag = False
         self.stack = []
+
+    # helper function
+    def update_flags(self, result):
+        result &= 0xff
+
+        self.zero_flag = (result == 0)
+        self.negative_flag = bool(result & 0x80)
+        self.parity_flag = result.bit_count() % 2 == 0
 
     def execute(self, operation, operands):
         log(operation)
@@ -254,8 +264,7 @@ class CPU:
                 "add"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "sub":
             dest, src = operands
@@ -266,8 +275,7 @@ class CPU:
                 "sub"
             )
             
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "and":
             dest, src = operands
@@ -278,8 +286,7 @@ class CPU:
                 "and"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "not":
             dest, = operands
@@ -290,8 +297,7 @@ class CPU:
                 "not"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "or":
             dest, src = operands
@@ -302,8 +308,7 @@ class CPU:
                 "or"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "xor":
             dest, src = operands
@@ -314,8 +319,7 @@ class CPU:
                 "xor"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "<<":
             dest, src = operands
@@ -326,8 +330,7 @@ class CPU:
                 "<<"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == ">>":
             dest, src = operands
@@ -338,48 +341,42 @@ class CPU:
                 ">>"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "mov":
             dest, src = operands
 
             reg[dest] = reg[src]   
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "clr":
             dest, = operands
 
             reg[dest] = 0
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "inc":
             dest, = operands
 
             reg[dest] = (reg[dest] + 1) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "dec":
             dest, = operands
 
             reg[dest] = (reg[dest] - 1) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "load":
             dest, address = operands
 
             reg[dest] = memory[address]
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "store":
             src, address = operands
@@ -394,8 +391,7 @@ class CPU:
 
             reg[dest] = value
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "addi":
             dest, value = operands
@@ -406,8 +402,7 @@ class CPU:
                 "add"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "subi":
             dest, value = operands
@@ -418,8 +413,7 @@ class CPU:
                 "sub"
             )    
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "jmp":
             address, = operands
@@ -430,11 +424,10 @@ class CPU:
 
             reg[dest] = (reg[dest] - 1) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
             
             if reg[dest] != 0:
-                return ("loop", address)
+                return ("jump", address)
 
         elif operation == "rol":
             dest, src = operands
@@ -445,8 +438,7 @@ class CPU:
                 "rol"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "ror":
             dest, src = operands
@@ -457,8 +449,7 @@ class CPU:
                 "ror"
             )       
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "call":
             address, = operands
@@ -474,12 +465,6 @@ class CPU:
 
             return ("jump", return_address)
 
-        elif operation == "branch":
-            address, = operands
-
-            if self.zero_flag:
-                return ("jump", address)
-
         elif operation == "uml":
             dest, src = operands
 
@@ -489,8 +474,7 @@ class CPU:
                 "uml"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "udv":
             dest, src = operands
@@ -501,8 +485,7 @@ class CPU:
                 "udv"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "sml":
             dest, src = operands
@@ -513,8 +496,7 @@ class CPU:
                 "sml"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "sdv":
             dest, src = operands
@@ -525,16 +507,14 @@ class CPU:
                 "sdv"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "neg":
             dest, = operands
 
             reg[dest] = (-reg[dest]) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "andi":
             dest, value = operands
@@ -545,8 +525,7 @@ class CPU:
                 "and"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "andn":
             dest, src, src2 = operands
@@ -557,8 +536,7 @@ class CPU:
                 "and"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "ori":
             dest, value = operands
@@ -569,8 +547,7 @@ class CPU:
                 "or"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "xori":
             dest, value = operands
@@ -581,8 +558,7 @@ class CPU:
                 "xor"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "orn":
             dest, src, src2 = operands
@@ -593,8 +569,7 @@ class CPU:
                 "or"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "xnor":
             dest, src, src2 = operands
@@ -605,8 +580,7 @@ class CPU:
                 "xor"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "sh1add":
             dest, src, src2 = operands
@@ -615,8 +589,7 @@ class CPU:
                 (reg[src] << 1) + reg[src2]
             ) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "sh2add":
             dest, src ,src2 = operands
@@ -625,8 +598,7 @@ class CPU:
                 (reg[src] << 2) + reg[src2]
             ) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "sh3add":
             dest, src, src2 = operands
@@ -635,8 +607,7 @@ class CPU:
                 (reg[src] << 3) + reg[src2]
             ) & 0xFF
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "remi":
             dest, value = operands
@@ -646,14 +617,12 @@ class CPU:
 
             reg[dest] = reg[dest] % value
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "tst":
             dest, = operands
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "max":
             dest, src = operands
@@ -664,8 +633,7 @@ class CPU:
                 "max"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "min":
             dest, src = operands
@@ -676,16 +644,14 @@ class CPU:
                 "min"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
 
         elif operation == "cmp":
             dest, src = operands
 
             result = (reg[dest] - reg[src]) & 0xFF
 
-            self.zero_flag = (result == 0)
-            self.negative_flag = bool(result & 0x80)
+            self.update_flags(result)
 
         elif operation == "rem":
             dest, src = operands
@@ -696,8 +662,25 @@ class CPU:
                 "rem"
             )
 
-            self.zero_flag = (reg[dest] == 0)
-            self.negative_flag = bool(reg[dest] & 0x80)
+            self.update_flags(reg[dest])
+
+        elif operation == "bnf":
+            address, = operands
+
+            if self.negative_flag:
+                return ("branch", address)
+
+        elif operation == "bzf":
+            address, = operands
+
+            if self.zero_flag:
+                return ("branch", address)
+
+        elif operation == "bpf":
+            address, = operands
+
+            if self.parity_flag:
+                return ('branch', address)
 
         elif operation == "halt":
             return "halt"
