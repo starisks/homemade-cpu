@@ -79,7 +79,15 @@ isa = {
     "min" : 0x45,
     "bnf" : 0x46,
     "bzf" : 0x47,
-    "bpf" : 0x48
+    "bpf" : 0x48,
+    "push" : 0x49,
+    "pop" : 0x50,
+    "bcf" : 0x51,
+    "adc" : 0x52,
+    "sdc" : 0x53,
+    "adci" : 0x54,
+    "sdci" : 0x55,
+    "clc" : 0x56
 }
 
 # signed integer
@@ -88,10 +96,18 @@ def signed8(x):
         return x - 0x100
     return x
 
-def ALU(x, y, operation):
+def ALU(x, y, operation, cpu=None):
     if operation == "add":
-        return (x + y) & 0xFF
+        raw = x + y
+
+        if cpu:
+            cpu.carry_flag = raw > 0xff
+
+        return raw & 0xff
     elif operation == "sub":
+        if cpu:
+            cpu.carry_flag = x >= y
+
         return (x - y) & 0xFF
     elif operation == "and":
         return x & y
@@ -135,6 +151,23 @@ def ALU(x, y, operation):
         return x == y
     elif operation == "rem":
         return x % y
+    elif operation == "adc":
+        carry = int(cpu.carry_flag) if cpu else 0
+        raw = x + y + carry
+
+        if cpu is not None:
+            cpu.carry_flag = raw > 0xFF
+
+        return raw & 0xFF
+    elif operation == "sdc":
+        carry = int(cpu.carry_flag) if cpu else 0
+        borrow = 1 - carry
+        raw = x - y - borrow
+
+        if cpu is not None:
+            cpu.carry_flag = raw >= 0
+
+        return raw & 0xFF
     else:
         raise ValueError(f"Invalid Operation : {operation}")
 
@@ -191,7 +224,7 @@ def parse_operand(x):
     return value & 0xFF
 
 # code
-with open("../program.asm", "r") as file:
+with open("D:/CPU/program.asm", "r") as file:
     for line in file:
         line = line.split("#")[0].split(";")[0]
         parts = line.replace(",", " ").split()
@@ -241,6 +274,7 @@ class CPU:
         self.zero_flag = False
         self.negative_flag = False
         self.parity_flag = False
+        self.carry_flag = False
         self.stack = []
 
     # helper function
@@ -261,7 +295,8 @@ class CPU:
             reg[dest] = ALU(
                 reg[dest],
                 reg[src],
-                "add"
+                "add",
+                self
             )
 
             self.update_flags(reg[dest])
@@ -272,7 +307,8 @@ class CPU:
             reg[dest] = ALU(
                 reg[dest],
                 reg[src],
-                "sub"
+                "sub",
+                self
             )
             
             self.update_flags(reg[dest])
@@ -360,14 +396,14 @@ class CPU:
         elif operation == "inc":
             dest, = operands
 
-            reg[dest] = (reg[dest] + 1) & 0xFF
+            reg[dest] = ALU(reg[dest], 1, "add", self)
 
             self.update_flags(reg[dest])
 
         elif operation == "dec":
             dest, = operands
 
-            reg[dest] = (reg[dest] - 1) & 0xFF
+            reg[dest] = ALU(reg[dest], 1, "sub", self)
 
             self.update_flags(reg[dest])
 
@@ -399,7 +435,8 @@ class CPU:
             reg[dest] = ALU(
                 reg[dest],
                 value,
-                "add"
+                "add",
+                self
             )
 
             self.update_flags(reg[dest])
@@ -410,7 +447,8 @@ class CPU:
             reg[dest] = ALU(
                 reg[dest],
                 value,
-                "sub"
+                "sub",
+                self
             )    
 
             self.update_flags(reg[dest])
@@ -512,7 +550,7 @@ class CPU:
         elif operation == "neg":
             dest, = operands
 
-            reg[dest] = (-reg[dest]) & 0xFF
+            reg[dest] = ALU(0, reg[dest], "sub", self)
 
             self.update_flags(reg[dest])
 
@@ -649,7 +687,7 @@ class CPU:
         elif operation == "cmp":
             dest, src = operands
 
-            result = (reg[dest] - reg[src]) & 0xFF
+            result = ALU(reg[dest], reg[src], "sub", self)
 
             self.update_flags(result)
 
@@ -682,11 +720,66 @@ class CPU:
             if self.parity_flag:
                 return ('branch', address)
 
+        elif operation == "bcf":
+            address, = operands
+
+            if self.carry_flag:
+                return ("jump", address)
+
+        elif operation == 'push':
+            dest, = operands
+            self.stack.append(reg[dest])
+
+        elif operation == 'pop':
+            dest, = operands
+            if not self.stack:
+                raise RuntimeError("stack underflow")
+
+            reg[dest] = self.stack.pop()
+
+        elif operation == 'adc':
+            dest, src = operands
+            reg[dest] = ALU(
+                reg[dest],
+                reg[src],
+                'adc',
+                self
+            )
+
+        elif operation == 'sdc':
+            dest, src = operands
+            reg[dest] = ALU(
+                reg[dest],
+                reg[src],
+                'sdc',
+                self
+            )
+
+        elif operation == 'adci':
+            dest, value = operands
+
+            reg[dest] = ALU(
+                reg[dest],
+                value,
+                "adc",
+                self
+            )
+
+        elif operation == 'sdci':
+            dest, value = operands
+
+            reg[dest] = ALU(
+                reg[dest],
+                value,
+                'sdc',
+                self
+            )
+
         elif operation == "halt":
             return "halt"
 
         return False
-    
+
     def fetch(self):
         self.ir = read_instruction(self.pc)
 
@@ -739,4 +832,4 @@ cpu.run()
 print("register data:")
 
 for r in "abcdefgh":
-    print(reg[r])
+    print(f"{reg[r]} = {reg_codes[r]}")
