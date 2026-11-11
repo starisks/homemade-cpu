@@ -854,4 +854,4 @@ cpu.run()
 print("register data:")
 
 for r in "abcdefgh":
-    print(f"{reg[r]} = {reg_codes[r]}")
+    print(f"{r} = {reg[r]}")

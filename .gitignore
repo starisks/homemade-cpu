@@ -3,3 +3,4 @@ Gemfile.lock
 __pycache__/
 .vscode/
 .ruby-lsp/
+py-port/cpu.log
