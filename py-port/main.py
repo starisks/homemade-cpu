@@ -87,7 +87,9 @@ isa = {
     "sdc" : 0x53,
     "adci" : 0x54,
     "sdci" : 0x55,
-    "clc" : 0x56
+    "clc" : 0x56,
+    "bof" : 0x57,
+    "clf" : 0x58 
 }
 
 # signed integer
@@ -96,17 +98,23 @@ def signed8(x):
         return x - 0x100
     return x
 
+# signed overflow
+def signed_overflow(result):
+    return not -128 <= result <= 127
+
 def ALU(x, y, operation, cpu=None):
     if operation == "add":
         raw = x + y
 
         if cpu:
             cpu.carry_flag = raw > 0xff
+            cpu.overflow_flag = signed_overflow(signed8(x) + signed8(y))
 
         return raw & 0xff
     elif operation == "sub":
         if cpu:
             cpu.carry_flag = x >= y
+            cpu.overflow_flag = signed_overflow(signed8(x) - signed8(y))
 
         return (x - y) & 0xFF
     elif operation == "and":
@@ -157,6 +165,7 @@ def ALU(x, y, operation, cpu=None):
 
         if cpu is not None:
             cpu.carry_flag = raw > 0xFF
+            cpu.overflow_flag = signed_overflow(signed8(x) + signed8(y))
 
         return raw & 0xFF
     elif operation == "sdc":
@@ -166,6 +175,7 @@ def ALU(x, y, operation, cpu=None):
 
         if cpu is not None:
             cpu.carry_flag = raw >= 0
+            cpu.overflow_flag = signed_overflow(signed8(x) - signed8(y))
 
         return raw & 0xFF
     else:
@@ -275,6 +285,7 @@ class CPU:
         self.negative_flag = False
         self.parity_flag = False
         self.carry_flag = False
+        self.overflow_flag = False
         self.stack = []
 
     # helper function
@@ -774,6 +785,9 @@ class CPU:
                 'sdc',
                 self
             )
+
+        elif operation == "clc":
+            self.carry_flag = False
 
         elif operation == "halt":
             return "halt"
