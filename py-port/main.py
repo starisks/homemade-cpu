@@ -737,6 +737,12 @@ class CPU:
             if self.carry_flag:
                 return ("jump", address)
 
+        elif operation == "bof":
+            address, = operands
+
+            if self.overflow_flag:
+                return ("jump", address)
+
         elif operation == 'push':
             dest, = operands
             self.stack.append(reg[dest])
@@ -789,6 +795,8 @@ class CPU:
         elif operation == "clc":
             self.carry_flag = False
 
+        elif operation == "clf":
+            self.overflow_flag = False
         elif operation == "halt":
             return "halt"
 
