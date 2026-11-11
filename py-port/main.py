@@ -1,15 +1,3 @@
-# registers
-reg = {
-    "a":0,
-    "b":0,
-    "c":0,
-    "d":0,
-    "e":0,
-    "f":0,
-    "g":0,
-    "h":0
-}
-
 reg_codes = {
     "a":0,
     "b":1,
@@ -89,7 +77,9 @@ isa = {
     "sdci" : 0x55,
     "clc" : 0x56,
     "bof" : 0x57,
-    "clf" : 0x58 
+    "clf" : 0x58,
+    "coreid" : 0x59,
+    "sync" : 0x60
 }
 
 # signed integer
@@ -199,7 +189,7 @@ def encode(instruction, *operands):
 
     for operand in operands:
         if isinstance(operand, str) and operand in reg_codes:
-            encoded_operands.append(("reg", reg_codes[operand]))
+            encoded_operands.append(("self.reg", reg_codes[operand]))
 
         elif isinstance(operand, int):
             if not 0 <= operand <= 0xFF:
@@ -262,7 +252,7 @@ def decode(instruction):
     decoded_operands = []
 
     for operand_type, value in operands:
-        if operand_type == "reg":
+        if operand_type == "self.reg":
             reg_names = list(reg_codes.keys())
             decoded_operands.append(reg_names[value])
 
@@ -276,8 +266,19 @@ def decode(instruction):
 def read_instruction(address):
     return instruction_memory[address]
 
-class CPU:
-    def __init__(self):
+class Core:
+    def __init__(self, core_id):
+        self.id = core_id
+        self.reg = {
+            "a":0,
+            "b":0,
+            "c":0,
+            "d":0,
+            "e":0,
+            "f":0,
+            "g":0,
+            "h":0
+        }
         self.pc = 0
         self.ir = None
         self.halted = False
@@ -287,6 +288,7 @@ class CPU:
         self.carry_flag = False
         self.overflow_flag = False
         self.stack = []
+        self.waiting = False
 
     # helper function
     def update_flags(self, result):
@@ -303,132 +305,132 @@ class CPU:
         if operation == "add":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "add",
                 self
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "sub":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "sub",
                 self
             )
             
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "and":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "and"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "not":
             dest, = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 0,
                 "not"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "or":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "or"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "xor":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "xor"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "<<":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "<<"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == ">>":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 ">>"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "mov":
             dest, src = operands
 
-            reg[dest] = reg[src]   
+            self.reg[dest] = self.reg[src]   
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "clr":
             dest, = operands
 
-            reg[dest] = 0
+            self.reg[dest] = 0
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "inc":
             dest, = operands
 
-            reg[dest] = ALU(reg[dest], 1, "add", self)
+            self.reg[dest] = ALU(self.reg[dest], 1, "add", self)
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "dec":
             dest, = operands
 
-            reg[dest] = ALU(reg[dest], 1, "sub", self)
+            self.reg[dest] = ALU(self.reg[dest], 1, "sub", self)
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "load":
             dest, address = operands
 
-            reg[dest] = memory[address]
+            self.reg[dest] = memory[address]
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "store":
             src, address = operands
 
-            memory[reg[address]] = reg[src]
+            memory[self.reg[address]] = self.reg[src]
 
         elif operation == "nop":
             pass
@@ -436,33 +438,33 @@ class CPU:
         elif operation == "loadi":
             dest, value = operands
 
-            reg[dest] = value
+            self.reg[dest] = value
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "addi":
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 "add",
                 self
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "subi":
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 "sub",
                 self
             )    
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "jmp":
             address, = operands
@@ -471,34 +473,34 @@ class CPU:
         elif operation == "loop":
             dest, address = operands
 
-            reg[dest] = (reg[dest] - 1) & 0xFF
+            self.reg[dest] = (self.reg[dest] - 1) & 0xFF
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
             
-            if reg[dest] != 0:
+            if self.reg[dest] != 0:
                 return ("jump", address)
 
         elif operation == "rol":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "rol"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "ror":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "ror"
             )       
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "call":
             address, = operands
@@ -517,146 +519,146 @@ class CPU:
         elif operation == "uml":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "uml"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "udv":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "udv"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "sml":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "sml"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "sdv":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "sdv"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "neg":
             dest, = operands
 
-            reg[dest] = ALU(0, reg[dest], "sub", self)
+            self.reg[dest] = ALU(0, self.reg[dest], "sub", self)
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "andi":
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 "and"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "andn":
             dest, src, src2 = operands
 
-            reg[dest] = ALU(
-                reg[src],
-                (~reg[src2]) & 0xFF,
+            self.reg[dest] = ALU(
+                self.reg[src],
+                (~self.reg[src2]) & 0xFF,
                 "and"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "ori":
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 "or"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "xori":
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 "xor"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "orn":
             dest, src, src2 = operands
 
-            reg[dest] = ALU(
-                reg[src],
-                (~reg[src2]) & 0xFF,
+            self.reg[dest] = ALU(
+                self.reg[src],
+                (~self.reg[src2]) & 0xFF,
                 "or"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "xnor":
             dest, src, src2 = operands
 
-            reg[dest] = ALU(
-                reg[src],
-                (~reg[src2]) & 0xFF,
+            self.reg[dest] = ALU(
+                self.reg[src],
+                (~self.reg[src2]) & 0xFF,
                 "xor"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "sh1add":
             dest, src, src2 = operands
 
-            reg[dest] = (
-                (reg[src] << 1) + reg[src2]
+            self.reg[dest] = (
+                (self.reg[src] << 1) + self.reg[src2]
             ) & 0xFF
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "sh2add":
             dest, src ,src2 = operands
 
-            reg[dest] = (
-                (reg[src] << 2) + reg[src2]
+            self.reg[dest] = (
+                (self.reg[src] << 2) + self.reg[src2]
             ) & 0xFF
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "sh3add":
             dest, src, src2 = operands
 
-            reg[dest] = (
-                (reg[src] << 3) + reg[src2]
+            self.reg[dest] = (
+                (self.reg[src] << 3) + self.reg[src2]
             ) & 0xFF
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "remi":
             dest, value = operands
@@ -664,54 +666,54 @@ class CPU:
             if value == 0:
                 raise ZeroDivisionError("division by zero")
 
-            reg[dest] = reg[dest] % value
+            self.reg[dest] = self.reg[dest] % value
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "tst":
             dest, = operands
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "max":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "max"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "min":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "min"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "cmp":
             dest, src = operands
 
-            result = ALU(reg[dest], reg[src], "sub", self)
+            result = ALU(self.reg[dest], self.reg[src], "sub", self)
 
             self.update_flags(result)
 
         elif operation == "rem":
             dest, src = operands
 
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 "rem"
             )
 
-            self.update_flags(reg[dest])
+            self.update_flags(self.reg[dest])
 
         elif operation == "bnf":
             address, = operands
@@ -745,58 +747,78 @@ class CPU:
 
         elif operation == 'push':
             dest, = operands
-            self.stack.append(reg[dest])
+            self.stack.append(self.reg[dest])
 
         elif operation == 'pop':
             dest, = operands
             if not self.stack:
                 raise RuntimeError("stack underflow")
 
-            reg[dest] = self.stack.pop()
+            self.reg[dest] = self.stack.pop()
 
         elif operation == 'adc':
             dest, src = operands
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 'adc',
                 self
             )
 
+            self.update_flags(self.reg[dest])
+
         elif operation == 'sdc':
             dest, src = operands
-            reg[dest] = ALU(
-                reg[dest],
-                reg[src],
+            self.reg[dest] = ALU(
+                self.reg[dest],
+                self.reg[src],
                 'sdc',
                 self
             )
 
+            self.update_flags(self.reg[dest])
+
         elif operation == 'adci':
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 "adc",
                 self
             )
 
+            self.update_flags(self.reg[dest])
+
         elif operation == 'sdci':
             dest, value = operands
 
-            reg[dest] = ALU(
-                reg[dest],
+            self.reg[dest] = ALU(
+                self.reg[dest],
                 value,
                 'sdc',
                 self
             )
+
+            self.update_flags(self.reg[dest])
 
         elif operation == "clc":
             self.carry_flag = False
 
         elif operation == "clf":
             self.overflow_flag = False
+
+        elif operation == "coreid":
+            dest, = operands
+
+            self.reg[dest] = self.id
+
+            self.update_flags(self.reg[dest])
+
+        elif operation == "sync":
+            self.waiting = True
+            return "sync"
+        
         elif operation == "halt":
             return "halt"
 
@@ -827,6 +849,8 @@ class CPU:
 
         if result == "halt":
             self.halted = True
+        elif result == "sync":
+            self.pc += 1
         elif isinstance(result, tuple):
             kind, target = result
 
@@ -837,21 +861,55 @@ class CPU:
         else:
             self.pc += 1
 
+    # def run(self, max_steps = 1000000):
+    #     for _ in range(max_steps):
+    #         self.step()
+    #         if self.halted:
+    #             return
+
+    #     log(f"maximum step count exceeded: {max_steps}")
+    #     raise RuntimeError(f"maximum step count exceeded: ({max_steps})")
+
+class GPU:
+    def __init__(self, core_count):
+        self.cores = [
+            Core(i) for i in range(core_count)
+        ]
+        self.waiting = set()
+    def step(self):
+        for core in self.cores:
+            if core.halted or core.id in self.waiting:
+                continue
+            core.step()
+
+            if core.waiting:
+                self.waiting.add(core.id)
+
+        active = {
+            core.id for core in self.cores
+            if not core.halted
+        }
+        if self.waiting == active:
+            self.waiting.clear()
+            for core in self.cores:
+                core.waiting = False
     def run(self, max_steps = 1000000):
         for _ in range(max_steps):
             self.step()
-            if self.halted:
+
+            if all(core.halted for core in self.cores):
                 return
 
-        log(f"maximum step count exceeded: {max_steps}")
         raise RuntimeError(f"maximum step count exceeded: ({max_steps})")
 
 # cpu instance
-cpu = CPU()
+gpu = GPU(4)
 
-cpu.run()
+gpu.run()
 
 print("register data:")
 
-for r in "abcdefgh":
-    print(f"{r} = {reg[r]}")
+for core in gpu.cores:
+    print(f"core {core.id}")
+    for r in "abcdefgh":
+        print(f"{r} = {core.reg[r]}")
