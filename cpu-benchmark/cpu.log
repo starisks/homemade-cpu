@@ -1,0 +1,95 @@
+22
+22
+[('self.reg', 0), ('imm', 255)]
+22
+22
+[('self.reg', 1), ('imm', 1)]
+0
+0
+[('self.reg', 0), ('self.reg', 1)]
+23
+23
+[('self.reg', 0), ('imm', 1)]
+32
+32
+[('self.reg', 0), ('imm', 5)]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['a', 255]
+loadi
+['b', 1]
+loadi
+['b', 1]
+loadi
+['b', 1]
+loadi
+['b', 1]
+loadi
+['b', 1]
+loadi
+['b', 1]
+loadi
+['b', 1]
+loadi
+['b', 1]
+add
+['a', 'b']
+add
+['a', 'b']
+add
+['a', 'b']
+add
+['a', 'b']
+add
+['a', 'b']
+add
+['a', 'b']
+add
+['a', 'b']
+add
+['a', 'b']
+addi
+['a', 1]
+addi
+['a', 1]
+addi
+['a', 1]
+addi
+['a', 1]
+addi
+['a', 1]
+addi
+['a', 1]
+addi
+['a', 1]
+addi
+['a', 1]
+loop
+['a', 5]
+loop
+['a', 5]
+loop
+['a', 5]
+loop
+['a', 5]
+loop
+['a', 5]
+loop
+['a', 5]
+loop
+['a', 5]
+loop
+['a', 5]
