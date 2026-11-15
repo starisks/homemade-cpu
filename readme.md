@@ -26,5 +26,7 @@ Yes, it actually exists. Although the instruction is hard-coded since i was too 
 The Ruby port is done, it is inside ruby-port. It was an absolute pain getting it to work. Because i am not writing code, i am translating code
 ## CPU 20th Port : Portal 2 VScript Port
 It is the 20th port of my CPU emulator. It runs in Portal 2 using VScript. It cannot read from a file, so it currently relies on appending to instruction memory. Getting it to work was an absolute nightmare. The Enrichment Center reminds you that the CPU emulator was never a part of the test.
+## TypeScript port
+It is now done. It was also a pain to get it working. It was quite an experience with types. It is in ts-port
 ### Note
 I might do other languages, such as Rust
