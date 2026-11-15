@@ -1,10 +1,15 @@
+// import
 import * as fs from "node:fs"
+
+// types
+type EncodedOperand = ["reg" | "imm", number]
+type Instruction = [number, EncodedOperand[]]
 
 const reg: Record<string, number> = Object.fromEntries("abcdefgh".split("").map(k => [k, 0]))
 const reg_codes: Record<string, number> = Object.fromEntries("abcdefgh".split("").map((k, i) => [k, i]))
 
 const memory: number[] = Array(256).fill(0)
-const instruction_memory: unknown[] = []
+const instruction_memory: Instruction[] = []
 
 const isa: Record<string, number> = {
     "add" : 0x00,
@@ -134,16 +139,16 @@ function alu(x: number, y: number, operation: string) {
     }
 }
 
-function encode(instruction: string, ...operands: number[]) {
+function encode(instruction: string, ...operands: (string | number)[]): Instruction {
     if (!(instruction in isa)) {
         throw "invalid instruction"
     }
-    const opcode: unknown = isa[instruction]
-    const encoded_operands: unknown[] = []
+    const opcode = isa[instruction]!
+    const encoded_operands: EncodedOperand[] = []
 
     for (const operand of operands) {
         if (typeof operand === "string" && operand in reg_codes) {
-            encoded_operands.push(["reg", reg_codes[operand]])
+            encoded_operands.push(["reg", reg_codes[operand]!])
         } 
         else if (typeof operand === "number") {
             if (!(0 <= operand && operand <= 0xFF)) {
@@ -182,5 +187,240 @@ function parse_operand(x: string) {
     return value & 0xFF
 }
 
+// parse assembly
+function parse_asm_operand(x: any) {
+    x = x.toLowerCase()
 
+    if (Object.hasOwn(reg_codes, x)) {
+        return x
+    }
+
+    return parse_operand(x)
+}
+
+const source = fs.readFileSync("../program.asm", "utf-8")
+
+for (let line of source.split(/\r?\n/)) {
+    line = line.split("#")[0]?.split(";")[0] ?? ""
+    let parts = line.replaceAll(",", " ").trim().split(/\s+/)
+
+    if (parts[0]) {
+        const [instruction, ...operands] = parts
+        instruction_memory.push(encode(instruction, ...operands.map(parse_asm_operand)))
+    }
+}
+
+let decoded_operands: any = []
+
+function decode(instruction: Instruction) {
+    const [opcode, operands] = instruction
+
+    const operation = Object.keys(isa).find(
+        key => isa[key] === opcode
+    )
+
+    if (operation === undefined) {
+        throw "invalid opcode"
+    }
+
+    const decoded_operands = operands.map(([type, value]) => {
+        if (type === "reg") {
+            return Object.keys(reg_codes)[value]
+        }
+        return value
+    })
+
+    return [operation, decoded_operands] as const
+}
+
+function read_instruction(address: number): Instruction {
+    const instruction = instruction_memory[address]
+    if (instruction === undefined) {
+        throw "invalid instruction address"
+    }
+    return instruction
+}
+
+class CPU {
+    pc: number = 0
+    ir: unknown = null
+    halted: boolean = false
+    zero_flag: boolean = false
+    stack: any = []
+
+    execute(operation:string, operands:any) {
+        if (operation == "not") {
+            const dest = operands[0]!
+
+            reg[dest] = alu(
+                reg[dest]!,
+                0,
+                "not"
+            )
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+
+        else if (operation == "clr") {
+            const dest = operands[0]!
+
+            reg[dest] = 0
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+
+        else if (operation == "inc") {
+            const dest = operands[0]!
+
+            reg[dest] = (reg[dest]! + 1) & 0xFF
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+
+        else if (operation == "nop") {}
+        else if (operation == "jmp") {
+            const address = operands[0]
+            return ["jump", address]
+        }
+        else if (operation == "loop") {
+            const dest = operands[0]!
+            const address = operands[1]!
+
+            reg[dest] = (reg[dest]! - 1) & 0xFF
+
+            this.zero_flag = (reg[dest] === 0)
+
+            if (reg[dest] != 0) {
+                return ["loop", address]
+            }
+        }
+        else if (operation == "call") {
+            const address = operands[0]
+
+            this.stack.push(this.pc + 1)
+            return ["jump", address]
+        }
+        else if (operation == "ret") {
+            if (this.stack.length === 0) {
+                throw "stack is empty"
+            }
+            const return_address = this.stack.pop()
+
+            return ["jump", return_address]
+        }
+        else if (operation == "branch") {
+            const address = operands[0]
+
+            if (this.zero_flag) {
+                return ["jump", address]
+            }
+        }
+        else if (operation == "neg") {
+            const dest = operands[0]
+
+            reg[dest] = (-reg[dest]!) & 0xFF
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+        else if (operation == "andn") {
+            const dest = operands[0]
+            const src = operands[1]
+            const src2 = operands[2]
+
+            reg[dest] = alu(
+                reg[src]!,
+                (~reg[src2]!) & 0xFF,
+                "and"
+            )
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+        else if (operation == "orn") {
+            const dest = operands[0]
+            const src = operands[1]
+            const src2 = operands[2]
+
+            reg[dest] = alu(
+                reg[src]!,
+                (~reg[src2]!) & 0xFF,
+                "or"
+            )
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+        else if (operation == "xnor") {
+            const dest = operands[0]
+            const src = operands[1]
+            const src2 = operands[2]
+
+            reg[dest] = alu(
+                reg[src]!,
+                (~reg[src2]!) & 0xFF,
+                "xor"
+            )
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+        else if (["sh1add", "sh2add", "sh3add"].includes(operation)) {
+            let [dest, src, src2] = operands
+            reg[dest] = ((reg[src]! << Number(operation[3])) + reg[src2]!) & 0xFF
+            this.zero_flag = (reg[dest] === 0)
+        }
+        else if (diops.includes(operation)) {
+            const dest = operands[0]
+            const src = operands[1]
+
+            reg[dest] = alu(reg[dest]!, reg[src]!, operation)
+
+            this.zero_flag = (reg[dest] === 0)
+        }
+        else if (operation == "halt") {
+            return "halt"
+        }
+        return false
+    }
+    fetch() {
+        this.ir = read_instruction(this.pc)
+    }
+    step() {
+        if (this.halted) {
+            return
+        }
+        if (!(0 <= this.pc && this.pc < instruction_memory.length)) {
+            this.halted = true
+            return
+        }
+        this.fetch()
+        const [operation, operands] = decode(this.ir as Instruction)
+
+        let result = this.execute(operation, operands)
+
+        if (result === "halt") {
+            this.halted = true
+        }
+        else if (Array.isArray(result)) {
+            let target = result[1]
+            if (!(0 <= target && target < instruction_memory.length)) {
+                throw "target is invalid"
+            }
+            this.pc = target
+        }
+        else {
+            this.pc += 1
+        }
+    }
+    run() {
+        for (let _ = 0; _ < 1000000; _++) {
+            this.step()
+            if (this.halted) {
+                return
+            }
+        }
+        throw "maximum step count exceeded"
+    }
+}
+
+let cpu = new CPU
+cpu.run()
+for (const [name, value] of Object.entries(reg)) {console.log(`${name}:${value}`)}
 export {}

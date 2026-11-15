@@ -1,5 +1,40 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
+// import
+const fs = __importStar(require("node:fs"));
 const reg = Object.fromEntries("abcdefgh".split("").map(k => [k, 0]));
 const reg_codes = Object.fromEntries("abcdefgh".split("").map((k, i) => [k, i]));
 const memory = Array(256).fill(0);
@@ -170,5 +205,183 @@ function parse_operand(x) {
         throw "imm out of range";
     }
     return value & 0xFF;
+}
+// parse assembly
+function parse_asm_operand(x) {
+    x = x.toLowerCase();
+    if (Object.hasOwn(reg_codes, x)) {
+        return x;
+    }
+    return parse_operand(x);
+}
+const source = fs.readFileSync("../program.asm", "utf-8");
+for (let line of source.split(/\r?\n/)) {
+    line = line.split("#")[0]?.split(";")[0] ?? "";
+    let parts = line.replaceAll(",", " ").trim().split(/\s+/);
+    if (parts[0]) {
+        const [instruction, ...operands] = parts;
+        instruction_memory.push(encode(instruction, ...operands.map(parse_asm_operand)));
+    }
+}
+let decoded_operands = [];
+function decode(instruction) {
+    const [opcode, operands] = instruction;
+    const operation = Object.keys(isa).find(key => isa[key] === opcode);
+    if (operation === undefined) {
+        throw "invalid opcode";
+    }
+    const decoded_operands = operands.map(([type, value]) => {
+        if (type === "reg") {
+            return Object.keys(reg_codes)[value];
+        }
+        return value;
+    });
+    return [operation, decoded_operands];
+}
+function read_instruction(address) {
+    const instruction = instruction_memory[address];
+    if (instruction === undefined) {
+        throw "invalid instruction address";
+    }
+    return instruction;
+}
+class CPU {
+    pc = 0;
+    ir = null;
+    halted = false;
+    zero_flag = false;
+    stack = [];
+    execute(operation, operands) {
+        if (operation == "not") {
+            const dest = operands[0];
+            reg[dest] = alu(reg[dest], 0, "not");
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "clr") {
+            const dest = operands[0];
+            reg[dest] = 0;
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "inc") {
+            const dest = operands[0];
+            reg[dest] = (reg[dest] + 1) & 0xFF;
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "nop") { }
+        else if (operation == "jmp") {
+            const address = operands[0];
+            return ["jump", address];
+        }
+        else if (operation == "loop") {
+            const dest = operands[0];
+            const address = operands[1];
+            reg[dest] = (reg[dest] - 1) & 0xFF;
+            this.zero_flag = (reg[dest] === 0);
+            if (reg[dest] != 0) {
+                return ["loop", address];
+            }
+        }
+        else if (operation == "call") {
+            const address = operands[0];
+            this.stack.push(this.pc + 1);
+            return ["jump", address];
+        }
+        else if (operation == "ret") {
+            if (this.stack.length === 0) {
+                throw "stack is empty";
+            }
+            const return_address = this.stack.pop();
+            return ["jump", return_address];
+        }
+        else if (operation == "branch") {
+            const address = operands[0];
+            if (this.zero_flag) {
+                return ["jump", address];
+            }
+        }
+        else if (operation == "neg") {
+            const dest = operands[0];
+            reg[dest] = (-reg[dest]) & 0xFF;
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "andn") {
+            const dest = operands[0];
+            const src = operands[1];
+            const src2 = operands[2];
+            reg[dest] = alu(reg[src], (~reg[src2]) & 0xFF, "and");
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "orn") {
+            const dest = operands[0];
+            const src = operands[1];
+            const src2 = operands[2];
+            reg[dest] = alu(reg[src], (~reg[src2]) & 0xFF, "or");
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "xnor") {
+            const dest = operands[0];
+            const src = operands[1];
+            const src2 = operands[2];
+            reg[dest] = alu(reg[src], (~reg[src2]) & 0xFF, "xor");
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (["sh1add", "sh2add", "sh3add"].includes(operation)) {
+            let [dest, src, src2] = operands;
+            reg[dest] = ((reg[src] << Number(operation[3])) + reg[src2]) & 0xFF;
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (diops.includes(operation)) {
+            const dest = operands[0];
+            const src = operands[1];
+            reg[dest] = alu(reg[dest], reg[src], operation);
+            this.zero_flag = (reg[dest] === 0);
+        }
+        else if (operation == "halt") {
+            return "halt";
+        }
+        return false;
+    }
+    fetch() {
+        this.ir = read_instruction(this.pc);
+    }
+    step() {
+        if (this.halted) {
+            return;
+        }
+        if (!(0 <= this.pc && this.pc < instruction_memory.length)) {
+            this.halted = true;
+            return;
+        }
+        this.fetch();
+        const [operation, operands] = decode(this.ir);
+        let result = this.execute(operation, operands);
+        if (result === "halt") {
+            this.halted = true;
+        }
+        else if (Array.isArray(result)) {
+            let target = result[1];
+            if (!(0 <= target && target < instruction_memory.length)) {
+                throw "target is invalid";
+            }
+            this.pc = target;
+        }
+        else {
+            this.pc += 1;
+        }
+    }
+    run() {
+        for (let _ = 0; _ < 1000000; _++) {
+            this.step();
+            if (this.halted) {
+                return;
+            }
+        }
+        throw "maximum step count exceeded";
+    }
+}
+let cpu = new CPU;
+cpu.run();
+for (const [name, value] of Object.entries(reg)) {
+    console.log(`${name}:${value}`);
 }
 //# sourceMappingURL=main.js.map
