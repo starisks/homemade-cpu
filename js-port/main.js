@@ -1,6 +1,7 @@
 console.log("hello")
 
 const fs = require("node:fs");
+const path = require("node:path")
 
 // registers
 let reg = {
@@ -220,7 +221,7 @@ function parse_asm_operand(x) {
 }
 
 // code
-const source = fs.readFileSync("../program.asm", "utf-8")
+const source = fs.readFileSync(path.join(__dirname, "..", "program.asm"), "utf-8")
 
 for (let line of source.split(/\r?\n/)) {
     line = line.split("#")[0].split(";")[0]

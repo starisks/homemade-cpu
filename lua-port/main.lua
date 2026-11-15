@@ -61,6 +61,8 @@ isa = {
     sh1add = 0x29,
     sh2add = 0x30,
     sh3add = 0x31,
+    loadi = 0x32,
+    addi = 0x33
 }
 
 diops = {"add","sub","and","or","xor","<<",">>","rol","ror","uml","udv","sml","sdv"}
@@ -187,7 +189,7 @@ function parse_operand(x)
 end
 
 -- read file
-local file = assert(io.open("../program.asm", "r"))
+local file = assert(io.open("program.asm", "r"))
 
 for line in file:lines() do
     line = (line:match("^[^#;]*") or ""):gsub(",", " ")
@@ -389,6 +391,24 @@ function CPU:execute(operation, operands)
         local dest, src = operands[1], operands[2]
 
         reg[dest] = alu(reg[dest], reg[src], operation)
+
+        self.zero_flag = (reg[dest] == 0)
+
+    elseif operation == "loadi" then
+        local dest, value = operands[1], operands[2]
+
+        reg[dest] = value
+
+        self.zero_flag = (reg[dest] == 0)
+
+    elseif operation == "addi" then
+        local dest, value = operands[1], operands[2]
+
+        reg[dest] = alu(
+            reg[dest],
+            value,
+            "add"
+        )
 
         self.zero_flag = (reg[dest] == 0)
     elseif operation == "halt" then

@@ -192,7 +192,7 @@ def parse_operand(x)
 end
 
 # code
-File.foreach("../program.asm") do |line|
+File.foreach(File.join(__dir__, "../program.asm")) do |line|
   line = line.split("#")[0].split(";")[0]
   parts = line.tr(",", ' ').split
   
@@ -381,6 +381,14 @@ class CPU
         operation
       )
 
+      @zero_flag = ($reg[dest] == 0)
+    elsif (operation == "addi")
+      dest, value = operands
+      $reg[dest] = alu(
+        $reg[dest],
+        value,
+        "add"
+      )
       @zero_flag = ($reg[dest] == 0)
     elsif (operation == "halt")
       return "halt"
