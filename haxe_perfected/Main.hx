@@ -376,7 +376,11 @@ class Main {
 
     static function main():Void {
         // code
+        #if flash
+        var content = "loadi a, 10\nloadi b, 20\nadd a, b\nhalt";
+        #else
         var content = sys.io.File.getContent("/program.asm");
+        #end
         // emulate Python universal newlines
         content = content.split("\r\n").join("\n").split("\r").join("\n");
 
@@ -396,10 +400,10 @@ class Main {
 
         cpu.run();
 
-        Sys.println("register data:");
+        trace("register data");
 
         for (r in "abcdefgh".split("")) {
-            Sys.println(Std.string(reg.get(r)));
+            trace(Std.string(reg.get(r)));
         }
     }
 }

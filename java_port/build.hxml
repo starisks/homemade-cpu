@@ -1,0 +1,3 @@
+-cp ..
+-main java_port.src.Main
+--java bin

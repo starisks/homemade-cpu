@@ -1,4 +1,4 @@
-D:\CPU
+D:\CPU\java_port
 begin defines
 dce
 haxe
@@ -299,6 +299,13 @@ M java.nio.file.CopyOption
 M java.util.Properties
 M java.lang.reflect.Member
 M java.lang.RuntimeException
+M java_port.src.Main
+E java_port.src.PyValue
+C java_port.src.PyValue
+E java_port.src.ExecResult
+C java_port.src.ExecResult
+C java_port.src.Main
+C java_port.src.CPU
 M haxe.iterators.ArrayKeyValueIterator
 C haxe.iterators.ArrayKeyValueIterator
 M java.nio.file.WatchKey
@@ -415,13 +422,6 @@ M java.nio.file.attribute.UserPrincipal
 M java.security.KeyException
 M java.util.function.LongSupplier
 M java.lang.Exception
-M haxe.root.Main
-E haxe.root.PyValue
-C haxe.root.PyValue
-E haxe.root.ExecResult
-C haxe.root.ExecResult
-C haxe.root.Main
-C haxe.root.CPU
 M java.lang.System
 M java.nio.channels.AsynchronousFileChannel
 M java.util.OptionalDouble
@@ -495,7 +495,7 @@ M haxe.root.StringBuf
 C haxe.root.StringBuf
 end modules
 begin main
-haxe.root.Main
+java_port.src.Main
 end main
 begin resources
 end resources

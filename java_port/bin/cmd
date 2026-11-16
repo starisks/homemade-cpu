@@ -17,6 +17,12 @@ src/haxe/root/Reflect.java
 src/haxe/io/Bytes.java
 src/haxe/exceptions/NotImplementedException.java
 src/haxe/IMap.java
+src/java_port/src/PyValue.java
+src/java_port/src/PyValue.java
+src/java_port/src/ExecResult.java
+src/java_port/src/ExecResult.java
+src/java_port/src/Main.java
+src/java_port/src/CPU.java
 src/haxe/iterators/ArrayKeyValueIterator.java
 src/haxe/ds/StringMap.java
 src/haxe/ds/_StringMap/StringMapKeyIterator.java
@@ -34,12 +40,6 @@ src/sys/io/FileInput.java
 src/haxe/root/EReg.java
 src/haxe/lang/FieldLookup.java
 src/sys/io/File.java
-src/haxe/root/PyValue.java
-src/haxe/root/PyValue.java
-src/haxe/root/ExecResult.java
-src/haxe/root/ExecResult.java
-src/haxe/root/Main.java
-src/haxe/root/CPU.java
 src/haxe/io/BytesBuffer.java
 src/haxe/io/Input.java
 src/haxe/root/StringBuf.java
