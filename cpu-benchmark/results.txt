@@ -1,4 +1,0 @@
-Lua : 18.4706 ms
-Python : 48.5485 ms
-JavaScript : 56.7629 ms
-Ruby : 145.2217 ms
