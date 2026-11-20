@@ -5,7 +5,7 @@ diops={"add","sub","and","or","xor","<<",">>","rol","ror","uml","udv","sml","sdv
 zde=ZeroDivisionError("zero division error")
 ve=ValueError
 def F(x): 
-    if x & 0x80: return x - 0x100
+    if x & 0x8000: return x - 0x10000
     return x
 def ALU(x, y, J):
     if J=="add":return (x+y)&0xFF
@@ -17,11 +17,11 @@ def ALU(x, y, J):
     elif J=="<<":return (x<<y)&0xFF
     elif J==">>":return x>>y
     elif J=="rol":
-        y%=8
-        return ((x << y)|(x>>(8-y)))&0xFF
+        y%=16
+        return ((x<<y)|(x>>(16-y)))&0xFF
     elif J=="ror":
-        y%=8
-        return ((x >> y)|(x<<(8-y)))&0xFF
+        y%=16
+        return ((x>>y)|(x<<(16-y)))&0xFF
     elif J=="uml":return (x*y)&0xFF
     elif J=="udv":
         if y==0:raise zde
@@ -41,7 +41,7 @@ def E(x):
     L=x.lstrip("+-")
     try:B=int(x,0) if L.startswith(("0x","0b","0o")) else int(x,10)
     except ve:return x
-    if not -128 <= B <= 255:raise ve  
+    if not -32768 <= B <= 65535:raise ve  
     return B & 0xFF
 with open("arch.asm","r") as file:
     for e in file:

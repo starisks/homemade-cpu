@@ -5,8 +5,8 @@ import * as fs from "node:fs"
 type EncodedOperand = ["reg" | "imm", number]
 type Instruction = [number, EncodedOperand[]]
 
-const reg: Record<string, number> = Object.fromEntries("abcdefgh".split("").map(k => [k, 0]))
-const reg_codes: Record<string, number> = Object.fromEntries("abcdefgh".split("").map((k, i) => [k, i]))
+const reg: Record<string, number> = Object.fromEntries("abcdefghijklmnop".split("").map(k => [k, 0]))
+const reg_codes: Record<string, number> = Object.fromEntries("abcdefghijklmnop".split("").map((k, i) => [k, i]))
 
 const memory: number[] = Array(256).fill(0)
 const instruction_memory: Instruction[] = []
@@ -77,18 +77,18 @@ const isa: Record<string, number> = {
 const diops: string[] = ["add","sub","and","or","xor","<<",">>","rol","ror","uml","udv","sml","sdv"]
 
 function signed8(x: number) : number {
-    if (x === 0x80) {
-        return x - 100
+    if (x === 0x8000) {
+        return x - 10000
     }
     return x
 }
 
 function alu(x: number, y: number, operation: string) {
     if (operation === "add") {
-        return (x + y) & 0xFF
+        return (x + y) & 0xFFFF
     }
     else if (operation === "sub") {
-        return (x - y) & 0xFF
+        return (x - y) & 0xFFFF
     }
     else if (operation === "and") {
         return x & y
@@ -100,39 +100,39 @@ function alu(x: number, y: number, operation: string) {
         return x ^ y
     }
     else if (operation === "not") {
-        return (~x) & 0xFF
+        return (~x) & 0xFFFF
     }
     else if (operation === "<<") {
-        return (x << y) & 0xFF
+        return (x << y) & 0xFFFF
     }
     else if (operation === ">>") {
         return (x >> y)
     }
     else if (operation === "ror") {
-        y %= 8
-        return ((x >> y) | (x << (8 - y)))
+        y %= 16
+        return ((x >> y) | (x << (16 - y)))
     }
     else if (operation === "rol") {
-        y %= 8
-        return ((x << y) | (x >> (8 - y)))
+        y %= 16
+        return ((x << y) | (x >> (16 - y)))
     }
     else if (operation === "uml") {
-        return (x * y) & 0xFF
+        return (x * y) & 0xFFFF
     }
     else if (operation === "udv") {
         if (y === 0) {
             throw "division by zero"
         }
-        return (x / y)
-    }
+        return (x / y) & 0xFFFF
+    } 
     else if (operation === "sml") {
-        return (signed8(x) * signed8(y)) & 0xFF
+        return (signed8(x) * signed8(y)) & 0xFFFF
     }
     else if (operation === "sdv") {
         if (y === 0) {
             throw "zero division error"
         }
-        return (signed8(x) / signed8(y)) & 0xFF
+        return (signed8(x) / signed8(y)) & 0xFFFF
     }
     else {
         throw "invalid operation"
@@ -151,7 +151,7 @@ function encode(instruction: string, ...operands: (string | number)[]): Instruct
             encoded_operands.push(["reg", reg_codes[operand]!])
         } 
         else if (typeof operand === "number") {
-            if (!(0 <= operand && operand <= 0xFF)) {
+            if (!(0 <= operand && operand <= 0xFFFF)) {
                 throw "invalid address"
             }
             encoded_operands.push(["imm", operand])
@@ -180,11 +180,11 @@ function parse_operand(x: string) {
         return x
     }
 
-    if (!(-128 <= value && value <= 255)) {
+    if (!(-32768 <= value && value <= 65535)) {
         throw "imm out of range"
     }
     
-    return value & 0xFF
+    return value & 0xFFFF
 }
 
 // parse assembly
@@ -272,7 +272,7 @@ class CPU {
         else if (operation == "inc") {
             const dest = operands[0]!
 
-            reg[dest] = (reg[dest]! + 1) & 0xFF
+            reg[dest] = (reg[dest]! + 1) & 0xFFFF
 
             this.zero_flag = (reg[dest] === 0)
         }
@@ -286,7 +286,7 @@ class CPU {
             const dest = operands[0]!
             const address = operands[1]!
 
-            reg[dest] = (reg[dest]! - 1) & 0xFF
+            reg[dest] = (reg[dest]! - 1) & 0xFFFF
 
             this.zero_flag = (reg[dest] === 0)
 
@@ -318,7 +318,7 @@ class CPU {
         else if (operation == "neg") {
             const dest = operands[0]
 
-            reg[dest] = (-reg[dest]!) & 0xFF
+            reg[dest] = (-reg[dest]!) & 0xFFFF
 
             this.zero_flag = (reg[dest] === 0)
         }
@@ -329,7 +329,7 @@ class CPU {
 
             reg[dest] = alu(
                 reg[src]!,
-                (~reg[src2]!) & 0xFF,
+                (~reg[src2]!) & 0xFFFF,
                 "and"
             )
 
@@ -342,7 +342,7 @@ class CPU {
 
             reg[dest] = alu(
                 reg[src]!,
-                (~reg[src2]!) & 0xFF,
+                (~reg[src2]!) & 0xFFFF,
                 "or"
             )
 
@@ -355,7 +355,7 @@ class CPU {
 
             reg[dest] = alu(
                 reg[src]!,
-                (~reg[src2]!) & 0xFF,
+                (~reg[src2]!) & 0xFFFF,
                 "xor"
             )
 
@@ -363,7 +363,7 @@ class CPU {
         }
         else if (["sh1add", "sh2add", "sh3add"].includes(operation)) {
             let [dest, src, src2] = operands
-            reg[dest] = ((reg[src]! << Number(operation[3])) + reg[src2]!) & 0xFF
+            reg[dest] = ((reg[src]! << Number(operation[3])) + reg[src2]!) & 0xFFFF
             this.zero_flag = (reg[dest] === 0)
         }
         else if (diops.includes(operation)) {

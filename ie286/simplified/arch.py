@@ -1,4 +1,4 @@
-reg = {k:0 for k in "abcdefgh"}
+reg = {k:0 for k in "abcdefghijklmnop"}
 reg_codes = {k:i for i, k in enumerate(reg)}
 instruction_memory = []
 isa = {
@@ -47,14 +47,14 @@ isa = {
 }
 diops = {"add","sub","and","or","xor","<<",">>","rol","ror","uml","udv","sml","sdv"}
 def signed8(x):
-    if x & 0x80:
-        return x - 0x100
+    if x & 0x8000:
+        return x - 0x10000
     return x
 def ALU(x, y, operation):
     if operation == "add":
-        return (x + y) & 0xFF
+        return (x + y) & 0xFFFF
     elif operation == "sub":
-        return (x - y) & 0xFF
+        return (x - y) & 0xFFFF
     elif operation == "and":
         return x & y
     elif operation == "or":
@@ -62,19 +62,19 @@ def ALU(x, y, operation):
     elif operation == "xor":
         return x ^ y
     elif operation == "not":
-        return (~x) & 0xFF
+        return (~x) & 0xFFFF
     elif operation == "<<":
-        return (x << y) & 0xFF
+        return (x << y) & 0xFFFF
     elif operation == ">>":
-        return x >> y
+        return (x & 0xFFFF) >> y
     elif operation == "rol":
-        y %= 8
-        return ((x << y) | (x >> (8 - y))) & 0xFF
+        y %= 16
+        return ((x << y) | (x >> (16 - y))) & 0xFFFF
     elif operation == "ror":
-        y %= 8
-        return ((x >> y) | (x << (8 - y))) & 0xFF
+        y %= 16
+        return ((x >> y) | (x << (16 - y))) & 0xFFFF
     elif operation == "uml":
-        return (x * y) & 0xFF
+        return (x * y) & 0xFFFF
     elif operation == "udv":
         if y == 0:
             raise ZeroDivisionError("division by zero")
@@ -82,13 +82,13 @@ def ALU(x, y, operation):
     elif operation == "sml":
         x = signed8(x)
         y = signed8(y)
-        return (x * y) & 0xFF
+        return (x * y) & 0xFFFF
     elif operation == "sdv":
         x = signed8(x)
         y = signed8(y)
         if y == 0:
             raise ZeroDivisionError("error : division by zero")
-        return int(x / y) & 0xFF
+        return int(x / y) & 0xFFFF
     else:
         raise ValueError(f"Invalid Operation : {operation}")
 def parse_operand(x):
@@ -98,9 +98,9 @@ def parse_operand(x):
         value = int(x, 0) if body.startswith(("0x", "0b", "0o")) else int(x, 10)
     except ValueError:
         return x
-    if not -128 <= value <= 255:
+    if not -32768 <= value <= 65535:
         raise ValueError(f"imm out of range {value}")    
-    return value & 0xFF
+    return value & 0xFFFF
 with open("arch.asm", "r") as file:
     for line in file:
         line = line.split("#")[0].split(';')[0]
@@ -137,11 +137,11 @@ class CPU:
             self.zero_flag = (reg[dest] == 0)
         elif operation == "inc":
             dest, = operands
-            reg[dest] = (reg[dest] + 1) & 0xFF
+            reg[dest] = (reg[dest] + 1) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
         elif operation == "dec":
             dest, = operands
-            reg[dest] = (reg[dest] - 1) & 0xFF
+            reg[dest] = (reg[dest] - 1) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
         elif operation == "nop":
             pass
@@ -150,7 +150,7 @@ class CPU:
             return ("jump", address)
         elif operation == "loop":
             dest, address = operands
-            reg[dest] = (reg[dest] - 1) & 0xFF
+            reg[dest] = (reg[dest] - 1) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
             if reg[dest] != 0:
                 return ("loop", address)
@@ -169,13 +169,13 @@ class CPU:
                 return ("jump", address)
         elif operation == "neg":
             dest, = operands
-            reg[dest] = (-reg[dest]) & 0xFF
+            reg[dest] = (-reg[dest]) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
         elif operation == "andn":
             dest, src, src2 = operands
             reg[dest] = ALU(
                 reg[src],
-                (~reg[src2]) & 0xFF,
+                (~reg[src2]) & 0xFFFF,
                 "and"
             )
             self.zero_flag = (reg[dest] == 0)
@@ -183,7 +183,7 @@ class CPU:
             dest, src, src2 = operands
             reg[dest] = ALU(
                 reg[src],
-                (~reg[src2]) & 0xFF,
+                (~reg[src2]) & 0xFFFF,
                 "or"
             )
             self.zero_flag = (reg[dest] == 0)
@@ -191,7 +191,7 @@ class CPU:
             dest, src, src2 = operands
             reg[dest] = ALU(
                 reg[src],
-                (~reg[src2]) & 0xFF,
+                (~reg[src2]) & 0xFFFF,
                 "xor"
             )
             self.zero_flag = (reg[dest] == 0)
@@ -199,19 +199,19 @@ class CPU:
             dest, src, src2 = operands
             reg[dest] = (
                 (reg[src] << 1) + reg[src2]
-            ) & 0xFF
+            ) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
         elif operation == "sh2add":
             dest, src ,src2 = operands
             reg[dest] = (
                 (reg[src] << 2) + reg[src2]
-            ) & 0xFF
+            ) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
         elif operation == "sh3add":
             dest, src, src2 = operands
             reg[dest] = (
                 (reg[src] << 3) + reg[src2]
-            ) & 0xFF
+            ) & 0xFFFF
             self.zero_flag = (reg[dest] == 0)
         elif operation in diops:
             dest, src = operands

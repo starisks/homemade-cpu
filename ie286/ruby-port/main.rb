@@ -1,27 +1,8 @@
 puts "Hello from Ruby"
 
 # registers
-$reg = {
-    a:0,
-    b:0,
-    c:0,
-    d:0,
-    e:0,
-    f:0,
-    g:0,
-    h:0
-} 
-
-$reg_codes = {
-    a: 0,
-    b: 1,
-    c: 2,
-    d: 3,
-    e: 4,
-    f: 5,
-    g: 6,
-    h: 7
-}
+$reg = Hash["abcdefghijklmnop".chars.map { |k| [k, 0] }]
+$reg_codes = Hash[$reg.keys.map.with_index { |k, i| [k, i] }]
 
 # memory
 $instruction_memory = []
@@ -90,8 +71,8 @@ $diops = [
 
 # signed integer
 def signed8(x)
-  if (x & 0x80) != 0
-    return x - 0x100
+  if (x & 0x8000) != 0
+    return x - 0x10000
   end
   return x
 end
@@ -99,9 +80,9 @@ end
 # alu
 def alu(x, y, operation)
   if (operation == "add")
-    return (x + y) & 0xFF
+    return (x + y) & 0xFFFF
   elsif (operation == "sub")
-    return (x - y) & 0xFF
+    return (x - y) & 0xFFFF
   elsif (operation == "and")
     return (x & y)
   elsif (operation == "xor")
@@ -109,35 +90,35 @@ def alu(x, y, operation)
   elsif (operation == "or")
     return (x | y)
   elsif (operation == "not")
-    return (~x) & 0xFF
+    return (~x) & 0xFFFF
   elsif (operation == "<<")
-    return (x << y) & 0xFF
+    return (x << y) & 0xFFFF
   elsif (operation == ">>")
     return (x >> y)
   elsif (operation == "rol")
-    y %= 8
-    return ((x << y) | (x >> (8 - y))) & 0xFF
+    y %= 16
+    return ((x << y) | (x >> (16 - y))) & 0xFFFF
   elsif (operation == "ror")
-    y %= 8
-    return ((x >> y) | (x << (8 - y))) & 0xFF
+    y %= 16
+    return ((x >> y) | (x << (16 - y))) & 0xFFFF
   elsif (operation == "uml")
-    return (x * y) & 0xFF
+    return (x * y) & 0xFFFF
   elsif (operation == "udv")
     if y == 0
       raise ZeroDivisionError, "Zero division error" 
     end
-    return (x / y) & 0xFF
+    return (x / y) & 0xFFFF
   elsif (operation == "sml")
     x = signed8(x)
     y = signed8(y)
-    return (x * y) & 0xFF
+    return (x * y) & 0xFFFF
   elsif (operation == "sdv")
     x = signed8(x)
     y = signed8(y)
     if (y == 0)
       raise ZeroDivisionError, "Zero division error"
     end
-    return (x / y)
+    return (x / y) & 0xFFFF
   else
     return "invalid instruction"
   end
@@ -157,7 +138,7 @@ def encode(instruction, *operands)
     if (operand.is_a?(Symbol)) && ($reg_codes.key?(operand))
       encoded_operands << ["reg", $reg_codes[operand]]
     elsif (operand.is_a?(Integer))
-      if !(0 <= operand && operand <= 0xFF)
+      if !(0 <= operand && operand <= 0xFFFF)
         raise ArgumentError, "invalid address"
       end
       encoded_operands << ["imm", operand]
@@ -185,10 +166,10 @@ def parse_operand(x)
     return x.to_sym if $reg_codes.key?(x.to_sym)
     return x
   end
-  if !(-128 <= value && value <= 255)
+  if !(-32768 <= value && value <= 65535)
     raise ArgumentError, "imm out of range"
   end
-  return value & 0xFF
+  return value & 0xFFFF
 end
 
 # code
@@ -258,7 +239,7 @@ class CPU
     elsif (operation == 'loadi')
       dest, value = operands
 
-      $reg[dest] = value & 0xFF
+      $reg[dest] = value & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
     elsif (operation == 'clr')
@@ -270,13 +251,13 @@ class CPU
     elsif (operation == 'inc')
       dest = operands[0]
 
-      $reg[dest] = ($reg[dest] + 1) & 0xff
+      $reg[dest] = ($reg[dest] + 1) & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
     elsif (operation == 'dec')
       dest = operands[0]
 
-      $reg[dest] = ($reg[dest] - 1) & 0xff
+      $reg[dest] = ($reg[dest] - 1) & 0xFFFF
     elsif (operation == 'nop')
     elsif (operation == 'jmp')
       address = operands[0]
@@ -284,7 +265,7 @@ class CPU
     elsif (operation == 'loop')
       dest, address = operands
 
-      $reg[dest] = ($reg[dest] - 1) & 0xff
+      $reg[dest] = ($reg[dest] - 1) & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
 
@@ -313,7 +294,7 @@ class CPU
     elsif (operation == 'neg')
       dest = operands[0]
 
-      $reg[dest] = (-$reg[dest]) & 0xFF
+      $reg[dest] = (-$reg[dest]) & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
     elsif (operation == 'andn')
@@ -321,7 +302,7 @@ class CPU
 
       $reg[dest] = alu(
         $reg[src],
-        (~$reg[src2]) & 0xFF,
+        (~$reg[src2]) & 0xFFFF,
         "and"
       )
 
@@ -331,7 +312,7 @@ class CPU
 
       $reg[dest] = alu(
         $reg[src],
-        (~$reg[src2]) & 0xff,
+        (~$reg[src2]) & 0xFFFF,
         "or"
       )
 
@@ -341,7 +322,7 @@ class CPU
 
       $reg[dest] = alu(
         $reg[src],
-        (~$reg[src2]) & 0xff,
+        (~$reg[src2]) & 0xFFFF,
         'xor'
       )
 
@@ -351,7 +332,7 @@ class CPU
 
       $reg[dest] = (
         ($reg[src] << 1) + $reg[src2]
-      ) & 0xFF
+      ) & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
 
@@ -360,7 +341,7 @@ class CPU
 
       $reg[dest] = (
         ($reg[src] << 2) + $reg[src2]
-      ) & 0xFF
+      ) & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
 
@@ -369,7 +350,7 @@ class CPU
 
       $reg[dest] = (
         ($reg[src] << 3) + $reg[src2]
-      ) & 0xFF
+      ) & 0xFFFF
 
       @zero_flag = ($reg[dest] == 0)
     elsif $diops.include?(operation)

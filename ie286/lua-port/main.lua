@@ -88,10 +88,10 @@ function alu(x, y, operation)
         return (x >> y)
     elseif (operation == "rol") then
         y = y % 16
-        return ((x << y) | (x >>> (8 - y))) & 0xFFFF
+        return ((x << y) | (x >> (16 - y))) & 0xFFFF
     elseif (operation == "ror") then
         y = y % 16
-        return ((x >>> y) | (x << (8 - y))) & 0xFFFF
+        return ((x >> y) | (x << (16 - y))) & 0xFFFF
     elseif (operation == "uml") then
         return (x * y) & 0xFFFF
     elseif (operation == "udv") then

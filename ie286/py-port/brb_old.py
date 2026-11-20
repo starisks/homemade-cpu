@@ -1,23 +1,4 @@
-reg = {
- "a":0,
- "b":0,
- "c":0,
- "d":0,
- "e":0,
- "f":0,
- "g":0,
- "h":0
-}
-reg_codes = {
-    "a":0,
-    "b":1,
-    "c":2,
-    "d":3,
-    "e":4,
-    "f":5,
-    "g":6,
-    "h":7,
-}
+reg={k:0 for k in "abcdefghijklmnop"};reg_codes={k:i for i,k in enumerate(reg)}
 memory = []
 isa = {
     "add" : 0x00,
@@ -32,12 +13,12 @@ isa = {
     "not" : 0x09
 }
 def ALU(x, y, operation):
-    if operation == "add":return (x + y) & 0xFF
-    elif operation == "sub":return (x - y) & 0xFF
+    if operation == "add":return (x + y) & 0xFFFF
+    elif operation == "sub":return (x - y) & 0xFFFF
     elif operation == "and":return x & y
     elif operation == "or":return x | y
     elif operation == "xor":return x ^ y
-    elif operation == "not":return (~x) & 0xFF
+    elif operation == "not":return (~x) & 0xFFFF
     else:raise ValueError(f"Invalid Operation : {operation}")
 def encode(instruction, *operands):
     if instruction not in isa:

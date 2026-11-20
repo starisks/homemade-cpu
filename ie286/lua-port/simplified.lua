@@ -178,7 +178,7 @@ function decode(instruction)
                 end
             end
             table.insert(decoded_operands, reg_name)
-        elseif operand_type == "imm" then
+        elseif operand_type == "imm" thenf
             table.insert(decoded_operands, value)
         end
     end
