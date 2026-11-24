@@ -8,45 +8,45 @@ def F(x):
     if x & 0x8000: return x - 0x10000
     return x
 def ALU(x, y, J):
-    if J=="add":return (x+y)&0xFF
-    elif J=="sub":return (x-y)&0xFF
+    if J=="add":return (x+y)&0xFFFF
+    elif J=="sub":return (x-y)&0xFFFF
     elif J=="and":return x&y
     elif J=="or":return x|y
     elif J=="xor":return x^y
-    elif J=="not":return (~x)&0xFF
-    elif J=="<<":return (x<<y)&0xFF
+    elif J=="not":return (~x)&0xFFFF
+    elif J=="<<":return (x<<y)&0xFFFF
     elif J==">>":return x>>y
     elif J=="rol":
         y%=16
-        return ((x<<y)|(x>>(16-y)))&0xFF
+        return ((x<<y)|(x>>(16-y)))&0xFFFF
     elif J=="ror":
         y%=16
-        return ((x>>y)|(x<<(16-y)))&0xFF
-    elif J=="uml":return (x*y)&0xFF
+        return ((x>>y)|(x<<(16-y)))&0xFFFF
+    elif J=="uml":return (x*y)&0xFFFF
     elif J=="udv":
         if y==0:raise zde
         return x//y   
     elif J=="sml":
         x=F(x)
         y=F(y)
-        return(x*y)&0xFF
+        return(x*y)&0xFFFF
     elif J=="sdv":
         x=F(x)
         y=F(y)
         if y == 0:raise zde
-        return int(x / y) & 0xFF
+        return int(x / y) & 0xFFFF
     else:raise ve
 def E(x):
     x=x.lower()
     L=x.lstrip("+-")
     try:B=int(x,0) if L.startswith(("0x","0b","0o")) else int(x,10)
     except ve:return x
-    if not -32768 <= B <= 65535:raise ve  
-    return B & 0xFF
+    if not -32768<=B<=65535:raise ve  
+    return B&0xFFFF
 with open("arch.asm","r") as file:
     for e in file:
-        e = e.split("#")[0].split(';')[0]
-        A = e.replace(","," ").split()
+        e=e.split("#")[0].split(';')[0]
+        A=e.replace(","," ").split()
         if A:
             A=[E(x) for x in A]
             C_K.append(A)
@@ -74,11 +74,11 @@ class c:
             I.O=(M[X]==0)
         elif J=="inc":
             X,=G
-            M[X]=(M[X]+1)&0xFF
+            M[X]=(M[X]+1)&0xFFFF
             I.O=(M[X]==0)
         elif J=="dec":
             X,=G
-            M[X]=(M[X]-1)&0xFF
+            M[X]=(M[X]-1)&0xFFFF
             I.O=(M[X]==0)
         elif J == "nop":pass
         elif J=="jmp":
@@ -86,7 +86,7 @@ class c:
             return ("jump",N)
         elif J=="loop":
             X,N=G
-            M[X]=(M[X]-1)&0xFF
+            M[X]=(M[X]-1)&0xFFFF
             I.O=(M[X]==0)
             if M[X]!=0:return ("loop", N)
         elif J=="call":
@@ -102,31 +102,31 @@ class c:
             if I.O:return ("jump", N)
         elif J=="neg":
             X,=G
-            M[X]=(-M[X])&0xFF
+            M[X]=(-M[X])&0xFFFF
             I.O=(M[X]==0)
         elif J=="andn":
             X,Y,Z=G
-            M[X]=ALU(M[Y],(~M[Z])&0xFF,"and")
+            M[X]=ALU(M[Y],(~M[Z])&0xFFFF,"and")
             I.O=(M[X]==0)
         elif J=="orn":
             X,Y,Z=G
-            M[X]=ALU(M[Y],(~M[Z])&0xFF,"or")
+            M[X]=ALU(M[Y],(~M[Z])&0xFFFF,"or")
             I.O=(M[X]==0)
         elif J=="xnor":
             X,Y,Z=G
-            M[X]=ALU(M[Y],(~M[Z])& 0xFF,"xor")
+            M[X]=ALU(M[Y],(~M[Z])& 0xFFFF,"xor")
             I.O=(M[X] == 0)
         elif J=="sh1add":
             X,Y,Z=G
-            M[X]=((M[Y]<<1)+M[Z])&0xFF
+            M[X]=((M[Y]<<1)+M[Z])&0xFFFF
             I.O=(M[X]==0)
         elif J=="sh2add":
             X,Y,Z=G
-            M[X]=((M[Y]<<2)+M[Z])&0xFF
+            M[X]=((M[Y]<<2)+M[Z])&0xFFFF
             I.O=(M[X]==0)
         elif J=="sh3add":
             X,Y,Z=G
-            M[X]=((M[Y]<<3)+M[Z])&0xFF
+            M[X]=((M[Y]<<3)+M[Z])&0xFFFF
             I.O=(M[X]==0)
         elif J in diops:
             X,Y=G

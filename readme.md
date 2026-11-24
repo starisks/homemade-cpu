@@ -4,4 +4,4 @@ This is my CPU emulator, i don't know why. I just want it to exist on as much pr
 ## I186
 This is the original version with 21 ports. Its an 8 bit CPU. But i felt it was too small, modern computers use x64 or x86. So i decided to make IE286
 ## IE286
-This is the 16 bit CPU, it has 8 ports. It can do what a 16 bit CPU does, but it does not have WORD instructions. Because i haven't made it. I will be working on this still
+This is the 16 bit CPU, it has 8 ports. It can do what a 16 bit CPU does, but it does not have WORD instructions. Because i haven't made it. I will still be working on this 

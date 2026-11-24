@@ -73,11 +73,11 @@ function alu(x, y, operation) {
     } else if (operation == ">>") {
         return (x >> y)
     } else if (operation == "rol") {
-        y %= 8
-        return ((x << y) | (x >> (8 - y))) & 0xFFFF
+        y %= 16
+        return ((x << y) | (x >>> (16 - y))) & 0xFFFF
     } else if (operation == "ror") {
-        y %= 8
-        return ((x >> y) | (x << (8 - y))) & 0xFFFF
+        y %= 16
+        return ((x >>> y) | (x << (16 - y))) & 0xFFFF
     } else if (operation == "uml") {
         return (x * y) & 0xFFFF
     }
