@@ -64,7 +64,7 @@ diops <- {
 }
 
 function signed8(x) {
-    if (x & 0x80) {
+    if (x & 0x8000) {
         return x - 65536
     }
     return x
@@ -176,7 +176,7 @@ function parseint(x) {
 // parse operand
 function parse_operand(x) {
     if (typeof(x) == "integer") {
-        if (!(x >= -128 && x <= 65535)) throw "imm out of range"
+        if (!(x >= -32768 && x <= 65535)) throw "imm out of range"
         return x & 0xFFFF
     }
     x = x.tolower()
@@ -193,7 +193,7 @@ function parse_operand(x) {
     } catch (e){
         return (x)
     }
-    if (!(value >= -128 && value <= 65535)) {
+    if (!(value >= -32768 && value <= 65535)) {
         throw "imm out of range"
     }
     return (value & 0xFFFF)
