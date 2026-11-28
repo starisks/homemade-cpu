@@ -1,5 +1,5 @@
-# This is the i186 CPU
-Its the 8 bit CPU
+# My little CPU emulator
+This is my CPU emulator, i don't know why. I just want it to exist on as much programming languages as possible. The CPU emulator is kind of realistic, it has multiple instructions. It started as a thought in my mind. "Why not make a CPU?" I thought. Then i made the Python port. Then i got bored. Then i thought "Why not make the C++ version?". So i made the C++ port. Then i got bored again. And i made the JavaScript port. And i will continue making ports until i say it is completed
 ## The Python Port
 The Python port is inside py-port. Its the original, and the starting point of the mini CPU emulator
 ## The C++ Port
@@ -30,3 +30,5 @@ It is the 20th port of my CPU emulator. It runs in Portal 2 using VScript. It ca
 It is now done. It was also a pain to get it working. It was quite an experience with types. It is in ts-port
 ## Slight deviation
 I decided to make a CPU benchmark. Since from my remembering, i only implemented about 4 languages that read instructions from a file. I decided to make those 4 languages compete for fastest time running a specific file program
+### Note
+I might do other languages, such as Rust

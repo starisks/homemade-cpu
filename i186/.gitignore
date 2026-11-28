@@ -1,0 +1,6 @@
+Gemfile.lock
+.ruby-version
+__pycache__/
+.vscode/
+.ruby-lsp/
+py-port/cpu.log
